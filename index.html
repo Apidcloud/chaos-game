@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Chaos Game</title>
+  <script src="https://unpkg.com/mathjs@9.3.0/lib/browser/math.js"></script>
+  <script src="https://cdn.plot.ly/plotly-1.35.2.min.js"></script>
+
+  <style>
+    body, html, input {
+      font-family: sans-serif;
+      font-size: 11pt;
+    }
+
+    #logisticExpression {
+      margin-left: 20px;
+      height: 30px;
+    }
+
+    #pageTitle {
+      margin-left: 20px;
+    }
+
+    #controls {
+      display: block;
+      position: relative;
+    }
+
+    #controls div {
+      display: inline-block;
+      margin: 0px 20px 0 20px;
+      vertical-align: top;
+    }
+
+    #controls p {
+      margin: 0;
+    }
+
+    #controls div div {
+      margin: 0 !important;
+      width: 35px;
+    }
+
+    .centerVertically {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .item1 { grid-area: header;}
+    .item2 { grid-area: plot; }
+    .item3 { grid-area: footer; }
+
+    .grid-container {
+      display: grid;
+      grid-template-areas:
+        'header header header'
+        'plot plot plot'
+        'footer footer footer';
+      grid-gap: 10px;
+      padding: 10px;
+      max-height: 1424px;
+    }
+
+    .grid-container > div {
+      text-align: center;
+      padding: 0 0;
+      font-size: 11pt;
+    }
+
+    .github-corner {
+      fill:#4983db;
+    }
+
+    .github-corner:hover .octo-arm {
+        animation: octocat-wave 560ms ease-in-out;
+      }
+      @keyframes octocat-wave
+      {
+        0%,100%
+        {
+          transform: rotate(0);
+        }
+        20%,60%
+        {
+          transform: rotate(-25deg);
+        }
+        40%,80%
+        {
+          transform: rotate(10deg);
+        }
+      }
+      @media (max-width:500px)
+      {
+        .github-corner:hover .octo-arm
+        {
+          animation: none;
+        }
+        .github-corner .octo-arm
+        {
+          animation: octocat-wave 560ms ease-in-out;
+        }
+      }
+
+  </style>
+</head>
+<body>
+
+  <a target="_blank" href="https://github.com/Apidcloud/chaos-game" class="github-corner" aria-label="View source on Github">
+    <svg width="80" height="80" viewBox="0 0 250 250" style="color:#ffffff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
+      <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
+      <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+      <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+    </svg>
+  </a>
+
+  <div class="grid-container">
+    <div class="item1">
+      <h1 id="pageTitle">Chaos Game</h1>
+
+      <div id="controls">
+        <div>
+          <p>Iterations to step at once</p>
+          <input type="range" min="0" max="1000" step="10" class="slider" onchange="iterationsRangeChange(this.value);" id="iterationsRange">
+          <div id="iterationsRangeOutput"></div>
+        </div>
+        <button class="centerVertically" onclick="randomizeNTimes();">Iterate</button>
+      </div>
+      <p id="currentNPoints"></p>
+    </div>
+    <div class="item2" id="mandelbrot-plot"></div>
+    <div class="item3">
+      <p>Used plot library: <a target="blank" href="https://plot.ly/javascript/">Plotly</a></p>
+    </div>
+  </div>
+
+  <script>
+    // 15k is already pretty slow
+    // another option is to use the most held by a 32-bit unsigned integer: Math.pow(2, 32)
+    const MAX_NUMBER_OF_POINTS = 15000;
+    const STARTING_ITERATIONS = 100;
+    const FRAME_DURATION = 500;
+    const TRANSITION_DURATION = 500;
+
+    // bounds used to create 3 static points, as well as to generate a pseudo-random starting point within
+    // the triangle boundary
+    const BOUND_X = [3, 7];
+    const BOUND_Y = [1, 9];
+
+    let generatedPoints = [];
+    let staticPoints;
+    let staticPointsTrace;
+
+    window.onload = function(){
+      document.getElementById("iterationsRange").value = STARTING_ITERATIONS;
+
+      // update text output accordingly
+      iterationsRangeChange(document.getElementById("iterationsRange").value);
+
+      // plot initial plot now that everything is set up
+      setupInitialPlot();
+
+      // update current number of points within the given triangle
+      updateCurrentNumberOfPoints();
+    }
+
+    function iterationsRangeChange(newVal){
+      document.getElementById("iterationsRangeOutput").innerHTML = newVal;
+    }
+
+    function updateCurrentNumberOfPoints(){
+      document.getElementById("currentNPoints").innerHTML = "Current number of points: " + generatedPoints.length.toString();
+    }
+
+    function randomizeNTimes(){
+      if (!generatedPoints){
+        return;
+      }
+
+      // fetch slider value
+      let nIterations = parseFloat(document.getElementById("iterationsRange").value);
+
+      // guarantee we don't go over a specified number of points
+      if (generatedPoints.length + nIterations > MAX_NUMBER_OF_POINTS) {
+        nIterations = MAX_NUMBER_OF_POINTS - generatedPoints.length;
+      }
+
+      iterateNSteps(nIterations);
+      updateCurrentNumberOfPoints();
+    }
+
+    function getDimensions(matrix){
+      if (!matrix){
+        return 0;
+      }
+
+      return [matrix.length, matrix.reduce((x, y) => Math.max(x, y.length), 0)];
+    }
+
+    function generateRandomPointWithinTriangle(boundary){
+      const testBoundary = getDimensions(boundary);
+
+      // we want the matrix to be 3x2 (i.e., 3 points with each having a x, and a y)
+      if (testBoundary == 0 || testBoundary[0] != 3 || testBoundary[1] != 2){
+        return;
+      }
+
+      const firstRandom = Math.random();
+      const secondRandom = Math.random();
+
+      // based on https://math.stackexchange.com/questions/18686/uniform-random-point-in-triangle-in-3d
+      const randomBoundedPoint = [(1 - Math.sqrt(firstRandom)) * boundary[0][0] + 
+                                    (Math.sqrt(firstRandom) * (1 - secondRandom)) * boundary[1][0] + 
+                                    (Math.sqrt(firstRandom) * secondRandom) * boundary[2][0],
+                                  (1 - Math.sqrt(firstRandom)) * boundary[0][1] + 
+                                    (Math.sqrt(firstRandom) * (1 - secondRandom)) * boundary[1][1] + 
+                                    (Math.sqrt(firstRandom) * secondRandom) * boundary[2][1]
+                                  ];
+      return {
+        x: randomBoundedPoint[0],
+        y: randomBoundedPoint[1]
+      }
+    }
+
+    // use known triangle boundary to get a new point within said triangle
+    // the point should be going towards one of the vertices, half way.
+    function getNewPoint(lastPoint, trianglePoints){
+      if (!lastPoint|| !trianglePoints){
+        return;
+      }
+
+      // we know the length should be 3, but still :D
+      const newRandomDirection = Math.floor(Math.random()*trianglePoints.length);
+
+      // this will give us a direction:
+      // either point A, B, or C
+      const pointToGoTowards = trianglePoints[newRandomDirection];
+
+      // now get the distance between this last point and the one to go towards to (A, B, or C)
+      //const halfDistance = Math.hypot(lastPoint, pointToGoTowards)/2;
+
+      // half vector from last point to the goal point
+      const halfVecLastToGoal = [(pointToGoTowards[0]-lastPoint.x)/2, (pointToGoTowards[1]-lastPoint.y)/2];
+
+      // get new point in direction to the goal (half distance to be precise)
+      return {
+        x: lastPoint.x+halfVecLastToGoal[0], 
+        y: lastPoint.y+halfVecLastToGoal[1]
+      };
+    }
+
+    function getNIterations(n, trianglePoints, lastPoint){
+      if (!n || n <= 0 || !trianglePoints || !lastPoint){
+        return;
+      }
+
+      let pointsForNextDraw = [];
+      let tempLastPoint = lastPoint;
+      for(let i = 0; i < n; i++){
+        // make sure to keep updating last point
+        tempLastPoint = getNewPoint(tempLastPoint, trianglePoints);
+        pointsForNextDraw.push(tempLastPoint);
+      }
+
+      return pointsForNextDraw;
+    }
+
+    function iterateNSteps(nStepsToIterateAtOnce) {
+      if (generatedPoints.length == 0 || !staticPointsTrace || !staticPoints){
+        return;
+      }
+
+      // get last drawn point
+      const lastAddedPoint = generatedPoints[generatedPoints.length-1];
+      // add the new points to the secondary trace
+      generatedPoints.push(...getNIterations(nStepsToIterateAtOnce, staticPoints, lastAddedPoint));
+
+      const traceWithinMainTriangle = {
+        x: generatedPoints.map(point => point.x),
+        y: generatedPoints.map(point => point.y),
+        mode: 'markers'
+      }
+
+      Plotly.animate('mandelbrot-plot', {
+        data: [staticPointsTrace, traceWithinMainTriangle],
+        traces: [0, 1],
+        layout: {}
+      }, {
+        transition: {
+          duration: TRANSITION_DURATION,
+          easing: 'cubic-in-out'
+        },
+        frame: {
+          duration: FRAME_DURATION
+        }
+      })
+    }
+
+    function setupInitialPlot() {
+      try {
+        staticPoints = [
+          [BOUND_X[0], BOUND_Y[0]],
+          [(BOUND_X[0]+BOUND_X[1])/2, BOUND_Y[1]],
+          [BOUND_X[1], BOUND_Y[0]]
+        ];
+
+        // render the plot using plotly
+        staticPointsTrace = {
+          x: [staticPoints[0][0], staticPoints[1][0], staticPoints[2][0]],
+          y: [staticPoints[0][1], staticPoints[1][1], staticPoints[2][1]],
+          mode: 'markers'
+        }
+        
+        // push a first pseudo-random point within the triangle
+        generatedPoints.push(generateRandomPointWithinTriangle(staticPoints));
+
+        // render the plot using plotly
+        const trace2 = {
+          x: generatedPoints.map(point => point.x),
+          y: generatedPoints.map(point => point.y),
+          mode: 'markers'
+        }
+
+        const data = [staticPointsTrace, trace2]
+
+        const layout = {
+            autosize: true,
+            showlegend: false,
+            margin: {
+                t: 20,
+                r: 10,
+                b: 30,
+                l: 30,
+                pad: 0
+            },
+            xaxis: {
+                range: [0, 10],
+                fixedrange: false,
+                layer: 'below traces'
+            },
+            yaxis: {
+                range: [0, 10],
+                fixedrange: false,
+                layer: 'below traces'
+            },
+            font: {size: 10}
+        };
+
+        Plotly.newPlot('mandelbrot-plot', data, layout, {scrollZoom: true})
+      }
+      catch (err) {
+        console.error(err)
+        alert(err)
+      }
+    }
+  </script>
+
+</body>
+</html>
