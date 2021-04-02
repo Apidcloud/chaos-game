@@ -165,6 +165,7 @@
     let staticPointsTrace;
     let currentRule;
     let lastVertexIndex;
+    let beforeLastVertexIndex;
 
     window.onload = function(){
       customLoad(STARTING_VERTICES_NUMBER, STARTING_RULE);
@@ -506,6 +507,10 @@
       for(let i = 0; i < n; i++){
         // make sure to keep updating last point
         tempLastPoint = getNewPoint(tempLastPoint, polygonVertices);
+        // keep a history of the last two vertices indices
+        // the first time, beforeLast will be undefined
+        beforeLastVertexIndex = lastVertexIndex;
+        lastVertexIndex = tempLastPoint.index;
         if (tempLastPoint == -1){
           alert("Minimum 4 vertices needed for rule 3.");
           break;
@@ -540,6 +545,7 @@
       // rule 1 is the normal half distance towards a point
       // rule 2: rule 1 but is not being able to go towards the same vertex twice
       // rule 3: rule 1 but currently chosen vertex cannot be 2 places away from the previously chosen vertex
+      // rule 4: rule 1 but if the same vertex is chosen twice in a row, then the next cannot be a direct neighbour of it
 
       let randomDirectionOptions = range(0, polygonVertices.length-1);
 
@@ -554,43 +560,37 @@
         }
       } else if (rule === 3){
           // no need to go further if there aren't enough vertices (does not work for triangle)
-          if (polygonVertices.length > 3){
-            const forwardIndex = (lastVertexIndex + 2) % randomDirectionOptions.length;
+          if (polygonVertices.length <= 3){
+            return -1;
+          }
 
-            let backwardIndex = (lastVertexIndex - 2);
-            let backwardValue;
-            if (backwardIndex < 0){
-              backwardIndex = randomDirectionOptions.length - backwardIndex;
-            }
+          if (lastVertexIndex !== undefined){
+            const neighbours = getNeighbours(lastVertexIndex, randomDirectionOptions, 2);
+            const forwardIndex = neighbours.forwardIndex;
+            const backwardIndex = neighbours.backwardIndex;
 
-            // get actual value, since we will be mutating the array when removing the forward index
-            backwardValue = randomDirectionOptions[backwardIndex];
-
-            // safe to remove forward, now that we know the actual value of the backward one 
-            randomDirectionOptions.splice(forwardIndex, 1);
-
-            if (backwardIndex != forwardIndex){
-              // also remove, but we need to find its new index, now that the array is mutated
-              for(let i = 0; i < randomDirectionOptions; i++){
-                if (randomDirectionOptions[i] === backwardValue){
-                  backwardIndex = i;
-                  break;
-                }
-              }
-              // now safe to remove in the new array
-              randomDirectionOptions.splice(backwardIndex, 1);
-            }
+            // get a new set of options (with removed indices already)
+            randomDirectionOptions = removeNeighbours(randomDirectionOptions, forwardIndex, backwardIndex);
 
             // finally get a guaranteed valid option
             // get valid random direction
             newRandomDirection = randomDirectionOptions[getNewRandomDirection(randomDirectionOptions.length)];
-          } else {
-            // code for not enough vertices for rule 3
-            return -1;
           }
-      }
+      } else if (rule === 4){
+        if (lastVertexIndex !== undefined && lastVertexIndex === beforeLastVertexIndex){
+          // get immediate neighbours
+          const neighbours = getNeighbours(lastVertexIndex, randomDirectionOptions, 1);
+          const forwardIndex = neighbours.forwardIndex;
+          const backwardIndex = neighbours.backwardIndex;
 
-      lastVertexIndex = newRandomDirection;
+          // get a new set of options (with removed indices already)
+          randomDirectionOptions = removeNeighbours(randomDirectionOptions, forwardIndex, backwardIndex);
+
+          // finally get a guaranteed valid option
+          // get valid random direction
+          newRandomDirection = randomDirectionOptions[getNewRandomDirection(randomDirectionOptions.length)];
+        }
+      }
 
       // this will give us a direction:
       // either point A, B, C, ...
@@ -606,9 +606,51 @@
       return {
         x: lastPoint.x+halfVecLastToGoal[0], 
         y: lastPoint.y+halfVecLastToGoal[1],
-        index: lastVertexIndex
+        index: newRandomDirection
       };
-    }    
+    }
+
+    function removeNeighbours(whereArr, forwardIndex, backwardIndex){
+      // clone array to make sure we do not affect it
+      const tempArr = whereArr.slice();
+
+      // get actual value, since we will be mutating the array when removing the forward index
+      const backwardValue = tempArr[backwardIndex];
+
+      // safe to remove forward, now that we know the actual value of the backward one 
+      tempArr.splice(forwardIndex, 1);
+
+      if (backwardIndex != forwardIndex){
+        // also remove, but we need to find its new index, now that the array is mutated
+        for(let i = 0; i < tempArr; i++){
+          if (tempArr[i] === backwardValue){
+            backwardIndex = i;
+            break;
+          }
+        }
+        // now safe to remove in the new array
+        tempArr.splice(backwardIndex, 1);
+      }
+
+      return tempArr;
+    }
+
+    function getNeighbours(origin, whereArr, distance){
+      if (!distance || !whereArr || origin === undefined){
+        return -1;
+      }
+      const forwardIndex = (origin + distance) % whereArr.length;
+
+      let backwardIndex = (origin - distance);
+      if (backwardIndex < 0){
+        backwardIndex = whereArr.length - backwardIndex;
+      }
+
+      return {
+        forwardIndex: forwardIndex,
+        backwardIndex: backwardIndex
+      }
+    }
     
   </script>
 </body>
