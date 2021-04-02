@@ -149,8 +149,8 @@
 
     const STARTING_VERTICES_NUMBER = 3;
 
-    // bounds used to create 3 static points, as well as to generate a pseudo-random starting point within
-    // the triangle boundary
+    // bounds used to create static points, as well as to generate a pseudo-random starting point within
+    // the polygon boundary
     const BOUND_X = [1, 13];
     const BOUND_Y = [1, 13];
 
@@ -175,7 +175,7 @@
       // plot initial plot now that everything is set up
       setupInitialPlot(verticeNumber);
 
-      // update current number of points within the given triangle
+      // update current number of points within the given polygon
       updateCurrentNumberOfPoints();
     }
 
@@ -224,9 +224,9 @@
       try {
         
         const centerPoint = {x: (BOUND_X[1]-BOUND_X[0])/2+BOUND_X[0], y: (BOUND_Y[1]-BOUND_Y[0])/2+BOUND_Y[0]};
-
         const topMiddleVertex = {x: (BOUND_X[0]+BOUND_X[1])/2, y: BOUND_Y[1]};
 
+        // create polygon main vertices
         staticPoints = createVertices(nVertices, centerPoint, topMiddleVertex);
 
         // only needed to debug
@@ -307,7 +307,7 @@
         return;
       }
 
-      //otherwise find optimal angle between each vertex
+      //find optimal angle between each vertex
       const optimalAngle = 360/n;
 
       let newPoint;
@@ -340,7 +340,10 @@
       let randomPoint;
 
       do {
-        randomPoint = [Math.random()*10, Math.random()*10];
+        // use the max boundary value for each axis
+        // we are assuming the [1] has it
+        // more would be needed if the points were to include negative ones
+        randomPoint = [Math.random()*BOUND_X[1], Math.random()*BOUND_Y[1]];
       } while (!isPointWithinPolygon(polygon, randomPoint));
 
       return {x: randomPoint[0], y: randomPoint[1]};
@@ -370,14 +373,6 @@
       }
     }
 
-    function getDimensions(matrix){
-      if (!matrix){
-        return 0;
-      }
-
-      return [matrix.length, matrix.reduce((x, y) => Math.max(x, y.length), 0)];
-    }
-
     function rotatePointAroundCenter(pointToRotate, degrees, centerPoint){
       if (!degrees) {
         return pointToRotate;
@@ -397,15 +392,15 @@
     }
 
     /**
-     * https://www.algorithms-and-technologies.com/point_in_polygon/javascript
-     * Performs the even-odd-rule Algorithm (a raycasting algorithm) to find out whether a point is in a given polygon.
-     * This runs in O(n) where n is the number of edges of the polygon.
-     *
-     * @param {Array} polygon an array representation of the polygon where polygon[i][0] is the x Value of the i-th point and polygon[i][1] is the y Value.
-     * @param {Array} point   an array representation of the point where point[0] is its x Value and point[1] is its y Value
-     * @return {boolean} whether the point is in the polygon (not on the edge, just turn < into <= and > into >= for that)
-     */
-     function isPointWithinPolygon(polygon, point) {
+   * https://www.algorithms-and-technologies.com/point_in_polygon/javascript
+   * Performs the even-odd-rule Algorithm (a raycasting algorithm) to find out whether a point is in a given polygon.
+   * This runs in O(n) where n is the number of edges of the polygon.
+   *
+   * @param {Array} polygon an array representation of the polygon where polygon[i][0] is the x Value of the i-th point and polygon[i][1] is the y Value.
+   * @param {Array} point   an array representation of the point where point[0] is its x Value and point[1] is its y Value
+   * @return {boolean} whether the point is in the polygon (not on the edge, just turn < into <= and > into >= for that)
+   */
+    function isPointWithinPolygon(polygon, point) {
         //A point is in a polygon if a line from the point to infinity crosses the polygon an odd number of times
         let odd = false;
         //For each edge (In this case for each point of the polygon and the previous one)
@@ -434,14 +429,14 @@
       // add the new points to the secondary trace
       generatedPoints.push(...getNIterations(nStepsToIterateAtOnce, staticPoints, lastAddedPoint));
 
-      const traceWithinMainTriangle = {
+      const traceWithinMainPolygon = {
         x: generatedPoints.map(point => point.x),
         y: generatedPoints.map(point => point.y),
         mode: 'markers'
       }
 
       Plotly.animate('mandelbrot-plot', {
-        data: [staticPointsTrace, traceWithinMainTriangle],
+        data: [staticPointsTrace, traceWithinMainPolygon],
         traces: [0, 1],
         layout: {}
       }, {
@@ -480,7 +475,7 @@
       const newRandomDirection = Math.floor(Math.random()*polygonVertices.length);
 
       // this will give us a direction:
-      // either point A, B, or C
+      // either point A, B, C, ...
       const pointToGoTowards = polygonVertices[newRandomDirection];
 
       // now get the distance between this last point and the one to go towards to (A, B, or C)
