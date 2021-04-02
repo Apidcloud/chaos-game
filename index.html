@@ -147,7 +147,7 @@
   <script>
     // 15k is already pretty slow
     // another option is to use the most held by a 32-bit unsigned integer: Math.pow(2, 32)
-    const MAX_NUMBER_OF_POINTS = 15000;
+    const MAX_NUMBER_OF_POINTS = 25000;
     const STARTING_ITERATIONS = 100;
     const FRAME_DURATION = 500;
     const TRANSITION_DURATION = 500;
@@ -302,6 +302,7 @@
             },
             shapes: [
               // Unfilled Circle
+              /**
               {
                 type: 'circle',
                 xref: 'x',
@@ -313,7 +314,7 @@
                 line: {
                   color: 'rgba(50, 171, 96, 1)'
                 }
-              }
+              }**/
             ],
             xaxis: {
                 scaleanchor: "y",
@@ -322,10 +323,10 @@
                 layer: 'below traces'
             },
             yaxis: {
-                range: [0, 15],
                 fixedrange: false,
                 layer: 'below traces'
             },
+            height: 500,
             font: {size: 10}
         };
 
@@ -505,6 +506,10 @@
       for(let i = 0; i < n; i++){
         // make sure to keep updating last point
         tempLastPoint = getNewPoint(tempLastPoint, polygonVertices);
+        if (tempLastPoint == -1){
+          alert("Minimum 4 vertices needed for rule 3.");
+          break;
+        }
         pointsForNextDraw.push(tempLastPoint);
       }
 
@@ -533,8 +538,8 @@
       const rule = currentRule;
 
       // rule 1 is the normal half distance towards a point
-      // rule 2 is not being able to go towards the same vertex twice
-      // ...
+      // rule 2: rule 1 but is not being able to go towards the same vertex twice
+      // rule 3: rule 1 but currently chosen vertex cannot be 2 places away from the previously chosen vertex
 
       let randomDirectionOptions = range(0, polygonVertices.length-1);
 
@@ -547,6 +552,42 @@
           // get valid random direction
           newRandomDirection = randomDirectionOptions[getNewRandomDirection(randomDirectionOptions.length)];
         }
+      } else if (rule === 3){
+          // no need to go further if there aren't enough vertices (does not work for triangle)
+          if (polygonVertices.length > 3){
+            const forwardIndex = (lastVertexIndex + 2) % randomDirectionOptions.length;
+
+            let backwardIndex = (lastVertexIndex - 2);
+            let backwardValue;
+            if (backwardIndex < 0){
+              backwardIndex = randomDirectionOptions.length - backwardIndex;
+            }
+
+            // get actual value, since we will be mutating the array when removing the forward index
+            backwardValue = randomDirectionOptions[backwardIndex];
+
+            // safe to remove forward, now that we know the actual value of the backward one 
+            randomDirectionOptions.splice(forwardIndex, 1);
+
+            if (backwardIndex != forwardIndex){
+              // also remove, but we need to find its new index, now that the array is mutated
+              for(let i = 0; i < randomDirectionOptions; i++){
+                if (randomDirectionOptions[i] === backwardValue){
+                  backwardIndex = i;
+                  break;
+                }
+              }
+              // now safe to remove in the new array
+              randomDirectionOptions.splice(backwardIndex, 1);
+            }
+
+            // finally get a guaranteed valid option
+            // get valid random direction
+            newRandomDirection = randomDirectionOptions[getNewRandomDirection(randomDirectionOptions.length)];
+          } else {
+            // code for not enough vertices for rule 3
+            return -1;
+          }
       }
 
       lastVertexIndex = newRandomDirection;
