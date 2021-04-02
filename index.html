@@ -125,6 +125,11 @@
           <div id="verticesRangeOutput"></div>
         </div>
         <div>
+          <p>Rule</p>
+          <input type="range" min="1" max="5" step="1" class="slider" onchange="ruleNumberRangeChange(this.value);" id="ruleNumberRange">
+          <div id="ruleRangeOutput"></div>
+        </div>
+        <div>
           <p>Iterations to step at once</p>
           <input type="range" min="0" max="1000" step="10" class="slider" onchange="iterationsRangeChange(this.value);" id="iterationsRange">
           <div id="iterationsRangeOutput"></div>
@@ -148,6 +153,7 @@
     const TRANSITION_DURATION = 500;
 
     const STARTING_VERTICES_NUMBER = 3;
+    const STARTING_RULE = 0;
 
     // bounds used to create static points, as well as to generate a pseudo-random starting point within
     // the polygon boundary
@@ -159,21 +165,23 @@
     let staticPointsTrace;
 
     window.onload = function(){
-      customLoad(STARTING_VERTICES_NUMBER);
+      customLoad(STARTING_VERTICES_NUMBER, STARTING_RULE);
     }
 
-    function customLoad(verticeNumber){
+    function customLoad(verticeNumber, ruleNumber){
       document.getElementById("iterationsRange").value = STARTING_ITERATIONS;
       document.getElementById("verticesNumberRange").value = verticeNumber;
+      document.getElementById("ruleNumberRange").value = ruleNumber;
 
       // update text output accordingly
       iterationsRangeChange(document.getElementById("iterationsRange").value);
       changeVerticesNumberOutput(document.getElementById("verticesNumberRange").value);
+      changeRuleNumberOutput(document.getElementById("ruleNumberRange").value);
 
       generatedPoints = [];
 
       // plot initial plot now that everything is set up
-      setupInitialPlot(verticeNumber);
+      setupInitialPlot(verticeNumber, ruleNumber);
 
       // update current number of points within the given polygon
       updateCurrentNumberOfPoints();
@@ -181,6 +189,22 @@
 
     function changeVerticesNumberOutput(newVal){
       document.getElementById("verticesRangeOutput").innerHTML = newVal;
+    }
+
+    function changeRuleNumberOutput(newVal){
+      document.getElementById("ruleRangeOutput").innerHTML = newVal;
+    }
+
+    function ruleNumberRangeChange(newVal){
+      // update text
+      changeRuleNumberOutput(newVal);
+
+      // clean current plot
+      const container = document.getElementById("mandelbrot-plot");
+      container.innerHTML = "";
+
+      // and load everything again, but with a different number of vertices
+      customLoad(document.getElementById("verticesNumberRange").value, newVal);
     }
 
     function verticesNumberRangeChange(newVal){
@@ -192,7 +216,7 @@
       container.innerHTML = "";
 
       // and load everything again, but with a different number of vertices
-      customLoad(newVal);
+      customLoad(newVal, document.getElementById("ruleNumberRange").value);
     }
 
     function iterationsRangeChange(newVal){
@@ -220,9 +244,11 @@
       updateCurrentNumberOfPoints();
     }
 
-    function setupInitialPlot(nVertices) {
+    function setupInitialPlot(nVertices, nRule) {
       try {
         
+        console.log(nRule);
+
         const centerPoint = {x: (BOUND_X[1]-BOUND_X[0])/2+BOUND_X[0], y: (BOUND_Y[1]-BOUND_Y[0])/2+BOUND_Y[0]};
         const topMiddleVertex = {x: (BOUND_X[0]+BOUND_X[1])/2, y: BOUND_Y[1]};
 
