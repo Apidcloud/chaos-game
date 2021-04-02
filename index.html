@@ -257,9 +257,6 @@
         // create polygon main vertices
         staticPoints = createVertices(nVertices, centerPoint, topMiddleVertex);
 
-        // only needed to debug
-        //staticPoints.push(centerPoint);
-
         // render the plot using plotly
         staticPointsTrace = {
           x: staticPoints.map(vertex => vertex.x),
@@ -268,18 +265,30 @@
         }
         
         // push a first pseudo-random point within the given polygon
+        // it won't have the suited matching colour (that would require comparing distances)
+        // and that is not really worth for this single point
         generatedPoints.push(getRandomPointWithinPolygon(staticPoints));
 
-        console.log(generatedPoints);
-
-        // render the plot using plotly
+        // render generated point
         const trace2 = {
           x: generatedPoints.map(point => point.x),
           y: generatedPoints.map(point => point.y),
           mode: 'markers'
         }
 
-        const data = [staticPointsTrace, trace2]
+        let data = [staticPointsTrace, trace2]
+
+        // push place holder data (necessary for subsequent animation) n-1 times
+        // so that the total is n+1
+        // (we already added one for the vertices, and another for a random starting point)
+        // using .fill was generating the same trace uid, and thus causing it to not display all traces
+        for (var i = 0; i < nVertices-1; i++) {
+          data.push({
+            x: [],
+            y: [],
+            mode: 'markers'
+          });
+        };
 
         const layout = {
             autosize: true,
@@ -450,20 +459,30 @@
         return;
       }
 
+      // polygon vertices
+      let traceData = [staticPointsTrace];
+
       // get last drawn point
       const lastAddedPoint = generatedPoints[generatedPoints.length-1];
       // add the new points to the secondary trace
       generatedPoints.push(...getNIterations(nStepsToIterateAtOnce, staticPoints, lastAddedPoint));
 
-      const traceWithinMainPolygon = {
-        x: generatedPoints.map(point => point.x),
-        y: generatedPoints.map(point => point.y),
-        mode: 'markers'
+      // additionally render as many traces as polygon vertices
+      for(let i = 0; i < staticPoints.length; i++){
+        const vertexTrace = {
+          x: generatedPoints.filter(p => p.index === i).map(point => point.x),
+          y: generatedPoints.filter(p => p.index === i).map(point => point.y),
+          mode: 'markers'
+        }
+
+        traceData.push(vertexTrace);
       }
 
+      const tracesRange = range(0, traceData.length-1);
+
       Plotly.animate('mandelbrot-plot', {
-        data: [staticPointsTrace, traceWithinMainPolygon],
-        traces: [0, 1],
+        data: traceData,
+        traces: tracesRange,
         layout: {}
       }, {
         transition: {
@@ -545,7 +564,8 @@
       // get new point in direction to the goal (half distance to be precise)
       return {
         x: lastPoint.x+halfVecLastToGoal[0], 
-        y: lastPoint.y+halfVecLastToGoal[1]
+        y: lastPoint.y+halfVecLastToGoal[1],
+        index: lastVertexIndex
       };
     }    
     
