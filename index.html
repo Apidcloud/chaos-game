@@ -307,47 +307,22 @@
         return;
       }
 
-      /*
-      let triangleVertices = [
-        topMiddleVertex, // top middle of set boundary
-        rotatePointAroundCenter(topMiddleVertex, 120, centerPoint), // second vertex 120 degrees apart
-        rotatePointAroundCenter(topMiddleVertex, -120, centerPoint) // third vertex -120 degrees apart
-      ];
-
-      // add missing vertices first
-      const missingVertices = n - triangleVertices.length;
-
-      if (missingVertices <= 0){
-        return triangleVertices;
-      }
-      */
-      const desiredRotationDegrees = 5.0;
-
       //otherwise find optimal angle between each vertex
       const optimalAngle = 360/n;
-
-      if (optimalAngle == 0){
-        return triangleVertices;
-      }
 
       let newPoint;
       let startingPoint = topMiddleVertex;
       let newPolygon = [topMiddleVertex];
 
       // add missing number of vertices (angle does not matter yet)
+      const desiredRotationDegrees = 5.0;
       for(let i = 0; i < n-1; i++){
         newPoint = rotatePointAroundCenter(startingPoint, desiredRotationDegrees, centerPoint);
         startingPoint = newPoint;
         newPolygon.push(newPoint);
       }
 
-      // and here we adjust the angle of all of the vertices
-      // for and start from point 0; rotate optimal degrees: set point 1 to that, and so on
-      //for(let i = 0; i < n-1; i++){
-      //  const nextVertex = rotatePointAroundCenter(newPolygon[i], optimalAngle, centerPoint);
-      //  newPolygon[i+1] = nextVertex;
-      //}
-
+      // rotate each of them accordingly
       for(let i = 1; i < n; i++){
         const nextVertex = rotatePointAroundCenter(newPolygon[0], optimalAngle*i, centerPoint);
         newPolygon[i] = nextVertex;
@@ -403,61 +378,6 @@
       return [matrix.length, matrix.reduce((x, y) => Math.max(x, y.length), 0)];
     }
 
-    function findOptimalRotationAngle(polygon, nVertices, centerPoint){
-      if (!polygon || !nVertices || polygon.length >= nVertices){
-        return;
-      }
-      const optimalDistance = getOptimalVertexDistance(nVertices);
-
-      const pointA = polygon[0];
-      let degreeDifference = 1;
-      let pointB = rotatePointAroundCenter(pointA, degreeDifference, centerPoint);
-
-      const errorAllowed = 0.1;
-      const step = 0.1;
-
-      let optimalDegrees = 0;
-      // add 0.1 degrees for each iteration and check distance between points then.
-      for(let degrees=0; degrees<360/step; degrees += step){
-        
-        const currentDistance = Math.hypot(pointB.x-pointA.x, pointB.y-pointA.y);
-
-        if (currentDistance < optimalDistance + errorAllowed && currentDistance > optimalDistance - errorAllowed){
-          optimalDegrees = degrees;
-          break;
-        }
-
-        degreeDifference += step;
-        pointB = rotatePointAroundCenter(pointA, degreeDifference, centerPoint);
-      }
-
-      return optimalDegrees;
-    }
-
-    function getOptimalVertexDistance(nVertices){
-      if (!nVertices || nVertices < 3){
-        return;
-      }
-
-      // this can be dynamically generated given the initial bounds
-      // ????? both of these are wrong, as they do not fit within the circle
-      // TODO
-
-
-
-      const triangleDistance = Math.hypot(12, 2);
-      const squareDistance = 12;
-
-      // rate can be calculated by square vertex distance / triangle vertex distance
-      const rate = squareDistance/triangleDistance;
-
-      let newDistance = triangleDistance;
-      for(let i = 3; i < nVertices; i++){
-        newDistance *= rate;
-      }
-      return newDistance;
-    }
-
     function rotatePointAroundCenter(pointToRotate, degrees, centerPoint){
       if (!degrees) {
         return pointToRotate;
@@ -474,27 +394,6 @@
         x: newPointX,
         y: newPointY
       };
-    }
-
-    function rotateAroundPivotPoint(pointToRotate, degrees, pivotPoint){
-      const rad = degrees*Math.PI/180;
-      const s = Math.sin(rad);
-      const c = Math.cos(rad);
-
-      let p = pointToRotate;
-      // translate point back to origin:
-      p[0] -= pivotPoint[0];
-      p[1] -= pivotPoint[1];
-
-      // rotate point
-      const xNew = p[0] * c - p[1] * s;
-      const yNew = p[0] * s + p[1] * c;
-
-      // translate point back:
-      p[0] = xNew + pivotPoint[0];
-      p[1] = yNew + pivotPoint[1];
-      
-      return p;
     }
 
     /**
@@ -572,14 +471,12 @@
       return pointsForNextDraw;
     }
 
-    // use known triangle boundary to get a new point within said triangle
     // the point should be going towards one of the vertices, half way.
     function getNewPoint(lastPoint, polygonVertices){
       if (!lastPoint|| !polygonVertices){
         return;
       }
 
-      // we know the length should be 3, but still :D
       const newRandomDirection = Math.floor(Math.random()*polygonVertices.length);
 
       // this will give us a direction:
@@ -600,6 +497,5 @@
     }    
     
   </script>
-
 </body>
 </html>
