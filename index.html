@@ -147,19 +147,19 @@
     const FRAME_DURATION = 500;
     const TRANSITION_DURATION = 500;
 
-    const VERTICE_NUMBER = 3;
+    const STARTING_VERTICES_NUMBER = 3;
 
     // bounds used to create 3 static points, as well as to generate a pseudo-random starting point within
     // the triangle boundary
-    const BOUND_X = [3, 7];
-    const BOUND_Y = [1, 9];
+    const BOUND_X = [1, 13];
+    const BOUND_Y = [1, 13];
 
     let generatedPoints;
     let staticPoints;
     let staticPointsTrace;
 
     window.onload = function(){
-      customLoad(VERTICE_NUMBER);
+      customLoad(STARTING_VERTICES_NUMBER);
     }
 
     function customLoad(verticeNumber){
@@ -173,7 +173,7 @@
       generatedPoints = [];
 
       // plot initial plot now that everything is set up
-      setupInitialPlot();
+      setupInitialPlot(verticeNumber);
 
       // update current number of points within the given triangle
       updateCurrentNumberOfPoints();
@@ -187,7 +187,7 @@
       // update text
       changeVerticesNumberOutput(newVal);
 
-      // clean
+      // clean current plot
       const container = document.getElementById("mandelbrot-plot");
       container.innerHTML = "";
 
@@ -216,18 +216,144 @@
         nIterations = MAX_NUMBER_OF_POINTS - generatedPoints.length;
       }
 
-      console.log(isPointWithinPolygon(staticPoints, [Math.random()*10, Math.random()*10]));
-
       iterateNSteps(nIterations);
       updateCurrentNumberOfPoints();
     }
 
-    function getDimensions(matrix){
-      if (!matrix){
-        return 0;
+    function setupInitialPlot(nVertices) {
+      try {
+        
+        const centerPoint = {x: (BOUND_X[1]-BOUND_X[0])/2+BOUND_X[0], y: (BOUND_Y[1]-BOUND_Y[0])/2+BOUND_Y[0]};
+
+        const topMiddleVertex = {x: (BOUND_X[0]+BOUND_X[1])/2, y: BOUND_Y[1]};
+
+        staticPoints = createVertices(nVertices, centerPoint, topMiddleVertex);
+
+        // only needed to debug
+        //staticPoints.push(centerPoint);
+
+        // render the plot using plotly
+        staticPointsTrace = {
+          x: staticPoints.map(vertex => vertex.x),
+          y: staticPoints.map(vertex => vertex.y),
+          mode: 'markers'
+        }
+        
+        // push a first pseudo-random point within the given polygon
+        generatedPoints.push(getRandomPointWithinPolygon(staticPoints));
+
+        console.log(generatedPoints);
+
+        // render the plot using plotly
+        const trace2 = {
+          x: generatedPoints.map(point => point.x),
+          y: generatedPoints.map(point => point.y),
+          mode: 'markers'
+        }
+
+        
+
+        const data = [staticPointsTrace, trace2]
+
+        const layout = {
+            autosize: true,
+            showlegend: false,
+            margin: {
+                t: 20,
+                r: 10,
+                b: 30,
+                l: 30,
+                pad: 0
+            },
+            shapes: [
+              // Unfilled Circle
+              {
+                type: 'circle',
+                xref: 'x',
+                yref: 'y',
+                x0: BOUND_X[1],
+                y0: BOUND_Y[1],
+                x1: BOUND_X[0],
+                y1: BOUND_Y[0],
+                line: {
+                  color: 'rgba(50, 171, 96, 1)'
+                }
+              }
+            ],
+            xaxis: {
+                scaleanchor: "y",
+                scaleratio: 1,
+                fixedrange: false,
+                layer: 'below traces'
+            },
+            yaxis: {
+                range: [0, 15],
+                fixedrange: false,
+                layer: 'below traces'
+            },
+            font: {size: 10}
+        };
+
+        Plotly.newPlot('mandelbrot-plot', data, layout, {scrollZoom: true})
+      }
+      catch (err) {
+        console.error(err)
+        alert(err)
+      }
+    }
+
+    function createVertices(n, centerPoint, topMiddleVertex){
+      if (!n || n < 3){
+        return;
       }
 
-      return [matrix.length, matrix.reduce((x, y) => Math.max(x, y.length), 0)];
+      /*
+      let triangleVertices = [
+        topMiddleVertex, // top middle of set boundary
+        rotatePointAroundCenter(topMiddleVertex, 120, centerPoint), // second vertex 120 degrees apart
+        rotatePointAroundCenter(topMiddleVertex, -120, centerPoint) // third vertex -120 degrees apart
+      ];
+
+      // add missing vertices first
+      const missingVertices = n - triangleVertices.length;
+
+      if (missingVertices <= 0){
+        return triangleVertices;
+      }
+      */
+      const desiredRotationDegrees = 5.0;
+
+      //otherwise find optimal angle between each vertex
+      const optimalAngle = 360/n;
+
+      if (optimalAngle == 0){
+        return triangleVertices;
+      }
+
+      let newPoint;
+      let startingPoint = topMiddleVertex;
+      let newPolygon = [topMiddleVertex];
+
+      // add missing number of vertices (angle does not matter yet)
+      for(let i = 0; i < n-1; i++){
+        newPoint = rotatePointAroundCenter(startingPoint, desiredRotationDegrees, centerPoint);
+        startingPoint = newPoint;
+        newPolygon.push(newPoint);
+      }
+
+      // and here we adjust the angle of all of the vertices
+      // for and start from point 0; rotate optimal degrees: set point 1 to that, and so on
+      //for(let i = 0; i < n-1; i++){
+      //  const nextVertex = rotatePointAroundCenter(newPolygon[i], optimalAngle, centerPoint);
+      //  newPolygon[i+1] = nextVertex;
+      //}
+
+      for(let i = 1; i < n; i++){
+        const nextVertex = rotatePointAroundCenter(newPolygon[0], optimalAngle*i, centerPoint);
+        newPolygon[i] = nextVertex;
+      }
+
+      return newPolygon;
     }
 
     // kind of brute force method to get a pseudo-random point within a given polygon
@@ -242,7 +368,133 @@
         randomPoint = [Math.random()*10, Math.random()*10];
       } while (!isPointWithinPolygon(polygon, randomPoint));
 
-      return randomPoint;
+      return {x: randomPoint[0], y: randomPoint[1]};
+    }
+
+    function generateRandomPointWithinTriangle(boundary){
+      const testBoundary = boundary.length;
+
+      if (!testBoundary || testBoundary != 3){
+        return;
+      }
+
+      const firstRandom = Math.random();
+      const secondRandom = Math.random();
+
+      // based on https://math.stackexchange.com/questions/18686/uniform-random-point-in-triangle-in-3d
+      const randomBoundedPoint = [(1 - Math.sqrt(firstRandom)) * boundary[0].x + 
+                                    (Math.sqrt(firstRandom) * (1 - secondRandom)) * boundary[1].x + 
+                                    (Math.sqrt(firstRandom) * secondRandom) * boundary[2].x,
+                                  (1 - Math.sqrt(firstRandom)) * boundary[0].y + 
+                                    (Math.sqrt(firstRandom) * (1 - secondRandom)) * boundary[1].y + 
+                                    (Math.sqrt(firstRandom) * secondRandom) * boundary[2].y
+                                  ];
+      return {
+        x: randomBoundedPoint[0],
+        y: randomBoundedPoint[1]
+      }
+    }
+
+    function getDimensions(matrix){
+      if (!matrix){
+        return 0;
+      }
+
+      return [matrix.length, matrix.reduce((x, y) => Math.max(x, y.length), 0)];
+    }
+
+    function findOptimalRotationAngle(polygon, nVertices, centerPoint){
+      if (!polygon || !nVertices || polygon.length >= nVertices){
+        return;
+      }
+      const optimalDistance = getOptimalVertexDistance(nVertices);
+
+      const pointA = polygon[0];
+      let degreeDifference = 1;
+      let pointB = rotatePointAroundCenter(pointA, degreeDifference, centerPoint);
+
+      const errorAllowed = 0.1;
+      const step = 0.1;
+
+      let optimalDegrees = 0;
+      // add 0.1 degrees for each iteration and check distance between points then.
+      for(let degrees=0; degrees<360/step; degrees += step){
+        
+        const currentDistance = Math.hypot(pointB.x-pointA.x, pointB.y-pointA.y);
+
+        if (currentDistance < optimalDistance + errorAllowed && currentDistance > optimalDistance - errorAllowed){
+          optimalDegrees = degrees;
+          break;
+        }
+
+        degreeDifference += step;
+        pointB = rotatePointAroundCenter(pointA, degreeDifference, centerPoint);
+      }
+
+      return optimalDegrees;
+    }
+
+    function getOptimalVertexDistance(nVertices){
+      if (!nVertices || nVertices < 3){
+        return;
+      }
+
+      // this can be dynamically generated given the initial bounds
+      // ????? both of these are wrong, as they do not fit within the circle
+      // TODO
+
+
+
+      const triangleDistance = Math.hypot(12, 2);
+      const squareDistance = 12;
+
+      // rate can be calculated by square vertex distance / triangle vertex distance
+      const rate = squareDistance/triangleDistance;
+
+      let newDistance = triangleDistance;
+      for(let i = 3; i < nVertices; i++){
+        newDistance *= rate;
+      }
+      return newDistance;
+    }
+
+    function rotatePointAroundCenter(pointToRotate, degrees, centerPoint){
+      if (!degrees) {
+        return pointToRotate;
+      }
+      const rad = degrees*Math.PI/180 * -1;
+
+      //const radius = Math.hypot(pointToRotate.x-centerPoint.x, pointToRotate.y-centerPoint.y);
+
+      // rotation matrix applied to AO (origin offset)
+      const newPointX = centerPoint.x + (pointToRotate.x - centerPoint.x) * Math.cos(rad) - (pointToRotate.y - centerPoint.y) * Math.sin(rad);
+      const newPointY = centerPoint.y + (pointToRotate.x - centerPoint.x) * Math.sin(rad) + (pointToRotate.y - centerPoint.y) * Math.cos(rad);
+
+      return {
+        x: newPointX,
+        y: newPointY
+      };
+    }
+
+    function rotateAroundPivotPoint(pointToRotate, degrees, pivotPoint){
+      const rad = degrees*Math.PI/180;
+      const s = Math.sin(rad);
+      const c = Math.cos(rad);
+
+      let p = pointToRotate;
+      // translate point back to origin:
+      p[0] -= pivotPoint[0];
+      p[1] -= pivotPoint[1];
+
+      // rotate point
+      const xNew = p[0] * c - p[1] * s;
+      const yNew = p[0] * s + p[1] * c;
+
+      // translate point back:
+      p[0] = xNew + pivotPoint[0];
+      p[1] = yNew + pivotPoint[1];
+      
+      return p;
     }
 
     /**
@@ -254,15 +506,15 @@
      * @param {Array} point   an array representation of the point where point[0] is its x Value and point[1] is its y Value
      * @return {boolean} whether the point is in the polygon (not on the edge, just turn < into <= and > into >= for that)
      */
-    function isPointWithinPolygon(polygon, point) {
+     function isPointWithinPolygon(polygon, point) {
         //A point is in a polygon if a line from the point to infinity crosses the polygon an odd number of times
         let odd = false;
         //For each edge (In this case for each point of the polygon and the previous one)
         for (let i = 0, j = polygon.length - 1; i < polygon.length; i++) {
             //If a line from the point into infinity crosses this edge
-            if (((polygon[i][1] > point[1]) !== (polygon[j][1] > point[1])) // One point needs to be above, one below our y coordinate
+            if (((polygon[i].y > point[1]) !== (polygon[j].y > point[1])) // One point needs to be above, one below our y coordinate
                 // ...and the edge doesn't cross our Y corrdinate before our x coordinate (but between our x coordinate and infinity)
-                && (point[0] < ((polygon[j][0] - polygon[i][0]) * (point[1] - polygon[i][1]) / (polygon[j][1] - polygon[i][1]) + polygon[i][0]))) {
+                && (point[0] < ((polygon[j].x - polygon[i].x) * (point[1] - polygon[i].y) / (polygon[j].y - polygon[i].y) + polygon[i].x))) {
                 // Invert odd
                 odd = !odd;
             }
@@ -271,74 +523,6 @@
         }
         //If the number of crossings was odd, the point is in the polygon
         return odd;
-    }
-
-    function generateRandomPointWithinTriangle(boundary){
-      const testBoundary = getDimensions(boundary);
-
-      // we want the matrix to be 3x2 (i.e., 3 points with each having a x, and a y)
-      if (testBoundary == 0 || testBoundary[0] != 3 || testBoundary[1] != 2){
-        return;
-      }
-
-      const firstRandom = Math.random();
-      const secondRandom = Math.random();
-
-      // based on https://math.stackexchange.com/questions/18686/uniform-random-point-in-triangle-in-3d
-      const randomBoundedPoint = [(1 - Math.sqrt(firstRandom)) * boundary[0][0] + 
-                                    (Math.sqrt(firstRandom) * (1 - secondRandom)) * boundary[1][0] + 
-                                    (Math.sqrt(firstRandom) * secondRandom) * boundary[2][0],
-                                  (1 - Math.sqrt(firstRandom)) * boundary[0][1] + 
-                                    (Math.sqrt(firstRandom) * (1 - secondRandom)) * boundary[1][1] + 
-                                    (Math.sqrt(firstRandom) * secondRandom) * boundary[2][1]
-                                  ];
-      return {
-        x: randomBoundedPoint[0],
-        y: randomBoundedPoint[1]
-      }
-    }
-
-    // use known triangle boundary to get a new point within said triangle
-    // the point should be going towards one of the vertices, half way.
-    function getNewPoint(lastPoint, trianglePoints){
-      if (!lastPoint|| !trianglePoints){
-        return;
-      }
-
-      // we know the length should be 3, but still :D
-      const newRandomDirection = Math.floor(Math.random()*trianglePoints.length);
-
-      // this will give us a direction:
-      // either point A, B, or C
-      const pointToGoTowards = trianglePoints[newRandomDirection];
-
-      // now get the distance between this last point and the one to go towards to (A, B, or C)
-      //const halfDistance = Math.hypot(lastPoint, pointToGoTowards)/2;
-
-      // half vector from last point to the goal point
-      const halfVecLastToGoal = [(pointToGoTowards[0]-lastPoint.x)/2, (pointToGoTowards[1]-lastPoint.y)/2];
-
-      // get new point in direction to the goal (half distance to be precise)
-      return {
-        x: lastPoint.x+halfVecLastToGoal[0], 
-        y: lastPoint.y+halfVecLastToGoal[1]
-      };
-    }
-
-    function getNIterations(n, trianglePoints, lastPoint){
-      if (!n || n <= 0 || !trianglePoints || !lastPoint){
-        return;
-      }
-
-      let pointsForNextDraw = [];
-      let tempLastPoint = lastPoint;
-      for(let i = 0; i < n; i++){
-        // make sure to keep updating last point
-        tempLastPoint = getNewPoint(tempLastPoint, trianglePoints);
-        pointsForNextDraw.push(tempLastPoint);
-      }
-
-      return pointsForNextDraw;
     }
 
     function iterateNSteps(nStepsToIterateAtOnce) {
@@ -372,63 +556,49 @@
       })
     }
 
-    function setupInitialPlot() {
-      try {
-        staticPoints = [
-          [BOUND_X[0], BOUND_Y[0]],
-          [(BOUND_X[0]+BOUND_X[1])/2, BOUND_Y[1]],
-          [BOUND_X[1], BOUND_Y[0]]
-        ];
-
-        // render the plot using plotly
-        staticPointsTrace = {
-          x: [staticPoints[0][0], staticPoints[1][0], staticPoints[2][0]],
-          y: [staticPoints[0][1], staticPoints[1][1], staticPoints[2][1]],
-          mode: 'markers'
-        }
-        
-        // push a first pseudo-random point within the triangle
-        generatedPoints.push(generateRandomPointWithinTriangle(staticPoints));
-
-        // render the plot using plotly
-        const trace2 = {
-          x: generatedPoints.map(point => point.x),
-          y: generatedPoints.map(point => point.y),
-          mode: 'markers'
-        }
-
-        const data = [staticPointsTrace, trace2]
-
-        const layout = {
-            autosize: true,
-            showlegend: false,
-            margin: {
-                t: 20,
-                r: 10,
-                b: 30,
-                l: 30,
-                pad: 0
-            },
-            xaxis: {
-                range: [0, 10],
-                fixedrange: false,
-                layer: 'below traces'
-            },
-            yaxis: {
-                range: [0, 10],
-                fixedrange: false,
-                layer: 'below traces'
-            },
-            font: {size: 10}
-        };
-
-        Plotly.newPlot('mandelbrot-plot', data, layout, {scrollZoom: true})
+    function getNIterations(n, polygonVertices, lastPoint){
+      if (!n || n <= 0 || !polygonVertices || !lastPoint){
+        return;
       }
-      catch (err) {
-        console.error(err)
-        alert(err)
+
+      let pointsForNextDraw = [];
+      let tempLastPoint = lastPoint;
+      for(let i = 0; i < n; i++){
+        // make sure to keep updating last point
+        tempLastPoint = getNewPoint(tempLastPoint, polygonVertices);
+        pointsForNextDraw.push(tempLastPoint);
       }
+
+      return pointsForNextDraw;
     }
+
+    // use known triangle boundary to get a new point within said triangle
+    // the point should be going towards one of the vertices, half way.
+    function getNewPoint(lastPoint, polygonVertices){
+      if (!lastPoint|| !polygonVertices){
+        return;
+      }
+
+      // we know the length should be 3, but still :D
+      const newRandomDirection = Math.floor(Math.random()*polygonVertices.length);
+
+      // this will give us a direction:
+      // either point A, B, or C
+      const pointToGoTowards = polygonVertices[newRandomDirection];
+
+      // now get the distance between this last point and the one to go towards to (A, B, or C)
+      //const halfDistance = Math.hypot(lastPoint, pointToGoTowards)/2;
+
+      // half vector from last point to the goal point
+      const halfVecLastToGoal = [(pointToGoTowards.x-lastPoint.x)/2, (pointToGoTowards.y-lastPoint.y)/2];
+
+      // get new point in direction to the goal (half distance to be precise)
+      return {
+        x: lastPoint.x+halfVecLastToGoal[0], 
+        y: lastPoint.y+halfVecLastToGoal[1]
+      };
+    }    
+    
   </script>
 
 </body>
