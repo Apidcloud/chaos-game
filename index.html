@@ -120,6 +120,11 @@
 
       <div id="controls">
         <div>
+          <p>Number of Vertices</p>
+          <input type="range" min="3" max="10" step="1" class="slider" onchange="verticesNumberRangeChange(this.value);" id="verticesNumberRange">
+          <div id="verticesRangeOutput"></div>
+        </div>
+        <div>
           <p>Iterations to step at once</p>
           <input type="range" min="0" max="1000" step="10" class="slider" onchange="iterationsRangeChange(this.value);" id="iterationsRange">
           <div id="iterationsRangeOutput"></div>
@@ -142,26 +147,52 @@
     const FRAME_DURATION = 500;
     const TRANSITION_DURATION = 500;
 
+    const VERTICE_NUMBER = 3;
+
     // bounds used to create 3 static points, as well as to generate a pseudo-random starting point within
     // the triangle boundary
     const BOUND_X = [3, 7];
     const BOUND_Y = [1, 9];
 
-    let generatedPoints = [];
+    let generatedPoints;
     let staticPoints;
     let staticPointsTrace;
 
     window.onload = function(){
+      customLoad(VERTICE_NUMBER);
+    }
+
+    function customLoad(verticeNumber){
       document.getElementById("iterationsRange").value = STARTING_ITERATIONS;
+      document.getElementById("verticesNumberRange").value = verticeNumber;
 
       // update text output accordingly
       iterationsRangeChange(document.getElementById("iterationsRange").value);
+      changeVerticesNumberOutput(document.getElementById("verticesNumberRange").value);
+
+      generatedPoints = [];
 
       // plot initial plot now that everything is set up
       setupInitialPlot();
 
       // update current number of points within the given triangle
       updateCurrentNumberOfPoints();
+    }
+
+    function changeVerticesNumberOutput(newVal){
+      document.getElementById("verticesRangeOutput").innerHTML = newVal;
+    }
+
+    function verticesNumberRangeChange(newVal){
+      // update text
+      changeVerticesNumberOutput(newVal);
+
+      // clean
+      const container = document.getElementById("mandelbrot-plot");
+      container.innerHTML = "";
+
+      // and load everything again, but with a different number of vertices
+      customLoad(newVal);
     }
 
     function iterationsRangeChange(newVal){
@@ -185,6 +216,8 @@
         nIterations = MAX_NUMBER_OF_POINTS - generatedPoints.length;
       }
 
+      console.log(isPointWithinPolygon(staticPoints, [Math.random()*10, Math.random()*10]));
+
       iterateNSteps(nIterations);
       updateCurrentNumberOfPoints();
     }
@@ -195,6 +228,49 @@
       }
 
       return [matrix.length, matrix.reduce((x, y) => Math.max(x, y.length), 0)];
+    }
+
+    // kind of brute force method to get a pseudo-random point within a given polygon
+    function getRandomPointWithinPolygon(polygon) {
+      if (polygon && polygon.length == 3){
+        return generateRandomPointWithinTriangle(polygon);
+      }
+
+      let randomPoint;
+
+      do {
+        randomPoint = [Math.random()*10, Math.random()*10];
+      } while (!isPointWithinPolygon(polygon, randomPoint));
+
+      return randomPoint;
+    }
+
+    /**
+     * https://www.algorithms-and-technologies.com/point_in_polygon/javascript
+     * Performs the even-odd-rule Algorithm (a raycasting algorithm) to find out whether a point is in a given polygon.
+     * This runs in O(n) where n is the number of edges of the polygon.
+     *
+     * @param {Array} polygon an array representation of the polygon where polygon[i][0] is the x Value of the i-th point and polygon[i][1] is the y Value.
+     * @param {Array} point   an array representation of the point where point[0] is its x Value and point[1] is its y Value
+     * @return {boolean} whether the point is in the polygon (not on the edge, just turn < into <= and > into >= for that)
+     */
+    function isPointWithinPolygon(polygon, point) {
+        //A point is in a polygon if a line from the point to infinity crosses the polygon an odd number of times
+        let odd = false;
+        //For each edge (In this case for each point of the polygon and the previous one)
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; i++) {
+            //If a line from the point into infinity crosses this edge
+            if (((polygon[i][1] > point[1]) !== (polygon[j][1] > point[1])) // One point needs to be above, one below our y coordinate
+                // ...and the edge doesn't cross our Y corrdinate before our x coordinate (but between our x coordinate and infinity)
+                && (point[0] < ((polygon[j][0] - polygon[i][0]) * (point[1] - polygon[i][1]) / (polygon[j][1] - polygon[i][1]) + polygon[i][0]))) {
+                // Invert odd
+                odd = !odd;
+            }
+            j = i;
+
+        }
+        //If the number of crossings was odd, the point is in the polygon
+        return odd;
     }
 
     function generateRandomPointWithinTriangle(boundary){
