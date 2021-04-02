@@ -153,7 +153,7 @@
     const TRANSITION_DURATION = 500;
 
     const STARTING_VERTICES_NUMBER = 3;
-    const STARTING_RULE = 0;
+    const STARTING_RULE = 1;
 
     // bounds used to create static points, as well as to generate a pseudo-random starting point within
     // the polygon boundary
@@ -163,6 +163,8 @@
     let generatedPoints;
     let staticPoints;
     let staticPointsTrace;
+    let currentRule;
+    let lastVertexIndex;
 
     window.onload = function(){
       customLoad(STARTING_VERTICES_NUMBER, STARTING_RULE);
@@ -247,7 +249,7 @@
     function setupInitialPlot(nVertices, nRule) {
       try {
         
-        console.log(nRule);
+        currentRule = parseInt(nRule);
 
         const centerPoint = {x: (BOUND_X[1]-BOUND_X[0])/2+BOUND_X[0], y: (BOUND_Y[1]-BOUND_Y[0])/2+BOUND_Y[0]};
         const topMiddleVertex = {x: (BOUND_X[0]+BOUND_X[1])/2, y: BOUND_Y[1]};
@@ -276,8 +278,6 @@
           y: generatedPoints.map(point => point.y),
           mode: 'markers'
         }
-
-        
 
         const data = [staticPointsTrace, trace2]
 
@@ -492,13 +492,45 @@
       return pointsForNextDraw;
     }
 
+    // generates an array using the traditional range approach (but step 1)
+    function range(start, end) {
+        let ans = [];
+        for (let i = start; i <= end; i++) {
+            ans.push(i);
+        }
+        return ans;
+    }
+
+    function getNewRandomDirection(nOptions){
+      return Math.floor(Math.random()*nOptions);
+    }
+
     // the point should be going towards one of the vertices, half way.
     function getNewPoint(lastPoint, polygonVertices){
       if (!lastPoint|| !polygonVertices){
         return;
       }
 
-      const newRandomDirection = Math.floor(Math.random()*polygonVertices.length);
+      const rule = currentRule;
+
+      // rule 1 is the normal half distance towards a point
+      // rule 2 is not being able to go towards the same vertex twice
+      // ...
+
+      let randomDirectionOptions = range(0, polygonVertices.length-1);
+
+      let newRandomDirection = randomDirectionOptions[getNewRandomDirection(randomDirectionOptions.length)];
+
+      if (rule === 2){
+        // remove previous vertex index if applicable
+        if (lastVertexIndex === newRandomDirection){
+          randomDirectionOptions.splice(lastVertexIndex, 1);
+          // get valid random direction
+          newRandomDirection = randomDirectionOptions[getNewRandomDirection(randomDirectionOptions.length)];
+        }
+      }
+
+      lastVertexIndex = newRandomDirection;
 
       // this will give us a direction:
       // either point A, B, C, ...
