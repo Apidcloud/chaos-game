@@ -130,6 +130,11 @@
           <div id="ruleRangeOutput"></div>
         </div>
         <div>
+          <p>Distance Factor</p>
+          <input type="range" min="0.1" max="0.9" step="0.01" class="slider" oninput="changeFactorDistanceOutput(this.value);" onchange="distanceFactorRangeChange(this.value);" id="distanceFactorRange">
+          <div id="factorDistanceOutput"></div>
+        </div>
+        <div>
           <p>Iterations to step at once</p>
           <input type="range" min="0" max="1000" step="10" class="slider" onchange="iterationsRangeChange(this.value);" id="iterationsRange">
           <div id="iterationsRangeOutput"></div>
@@ -145,15 +150,17 @@
   </div>
 
   <script>
-    // 15k is already pretty slow
+    // 25k is already pretty slow
     // another option is to use the most held by a 32-bit unsigned integer: Math.pow(2, 32)
     const MAX_NUMBER_OF_POINTS = 25000;
     const STARTING_ITERATIONS = 100;
     const FRAME_DURATION = 500;
     const TRANSITION_DURATION = 500;
+    const MARKER_SIZE = 3;
 
     const STARTING_VERTICES_NUMBER = 3;
     const STARTING_RULE = 1;
+    const STARTING_FACTOR_DISTANCE = 0.5;
 
     // bounds used to create static points, as well as to generate a pseudo-random starting point within
     // the polygon boundary
@@ -164,27 +171,31 @@
     let staticPoints;
     let staticPointsTrace;
     let currentRule;
+    let currentDistanceFactor;
     let lastVertexIndex;
     let beforeLastVertexIndex;
 
     window.onload = function(){
-      customLoad(STARTING_VERTICES_NUMBER, STARTING_RULE);
+      customLoad(STARTING_VERTICES_NUMBER, STARTING_RULE, STARTING_FACTOR_DISTANCE);
     }
 
-    function customLoad(verticeNumber, ruleNumber){
+    function customLoad(verticeNumber, ruleNumber, factorDistance){
       document.getElementById("iterationsRange").value = STARTING_ITERATIONS;
       document.getElementById("verticesNumberRange").value = verticeNumber;
       document.getElementById("ruleNumberRange").value = ruleNumber;
+      document.getElementById("distanceFactorRange").value = factorDistance;
 
       // update text output accordingly
       iterationsRangeChange(document.getElementById("iterationsRange").value);
       changeVerticesNumberOutput(document.getElementById("verticesNumberRange").value);
       changeRuleNumberOutput(document.getElementById("ruleNumberRange").value);
+      changeFactorDistanceOutput(document.getElementById("distanceFactorRange").value);
 
+      // make sure to initialise generated points array here
       generatedPoints = [];
 
       // plot initial plot now that everything is set up
-      setupInitialPlot(verticeNumber, ruleNumber);
+      setupInitialPlot(verticeNumber, ruleNumber, factorDistance);
 
       // update current number of points within the given polygon
       updateCurrentNumberOfPoints();
@@ -198,6 +209,19 @@
       document.getElementById("ruleRangeOutput").innerHTML = newVal;
     }
 
+    function changeFactorDistanceOutput(newVal){
+      document.getElementById("factorDistanceOutput").innerHTML = newVal;
+    }
+
+    function distanceFactorRangeChange(newVal){
+      // clean current plot
+      const container = document.getElementById("mandelbrot-plot");
+      container.innerHTML = "";
+
+      // and load everything again, but with a different factor distance
+      customLoad(document.getElementById("verticesNumberRange").value, document.getElementById("ruleNumberRange").value, newVal);
+    }
+
     function ruleNumberRangeChange(newVal){
       // update text
       changeRuleNumberOutput(newVal);
@@ -206,8 +230,8 @@
       const container = document.getElementById("mandelbrot-plot");
       container.innerHTML = "";
 
-      // and load everything again, but with a different number of vertices
-      customLoad(document.getElementById("verticesNumberRange").value, newVal);
+      // and load everything again, but with a different rule number
+      customLoad(document.getElementById("verticesNumberRange").value, newVal, document.getElementById("distanceFactorRange").value);
     }
 
     function verticesNumberRangeChange(newVal){
@@ -219,7 +243,7 @@
       container.innerHTML = "";
 
       // and load everything again, but with a different number of vertices
-      customLoad(newVal, document.getElementById("ruleNumberRange").value);
+      customLoad(newVal, document.getElementById("ruleNumberRange").value, document.getElementById("distanceFactorRange").value);
     }
 
     function iterationsRangeChange(newVal){
@@ -247,10 +271,11 @@
       updateCurrentNumberOfPoints();
     }
 
-    function setupInitialPlot(nVertices, nRule) {
+    function setupInitialPlot(nVertices, nRule, distanceFactor) {
       try {
         
         currentRule = parseInt(nRule);
+        currentDistanceFactor = parseFloat(distanceFactor);
 
         const centerPoint = {x: (BOUND_X[1]-BOUND_X[0])/2+BOUND_X[0], y: (BOUND_Y[1]-BOUND_Y[0])/2+BOUND_Y[0]};
         const topMiddleVertex = {x: (BOUND_X[0]+BOUND_X[1])/2, y: BOUND_Y[1]};
@@ -274,7 +299,10 @@
         const trace2 = {
           x: generatedPoints.map(point => point.x),
           y: generatedPoints.map(point => point.y),
-          mode: 'markers'
+          mode: 'markers',
+          marker: {
+            size: MARKER_SIZE
+          }
         }
 
         let data = [staticPointsTrace, trace2]
@@ -287,7 +315,10 @@
           data.push({
             x: [],
             y: [],
-            mode: 'markers'
+            mode: 'markers',
+            marker: {
+              size: MARKER_SIZE
+            }
           });
         };
 
@@ -474,7 +505,10 @@
         const vertexTrace = {
           x: generatedPoints.filter(p => p.index === i).map(point => point.x),
           y: generatedPoints.filter(p => p.index === i).map(point => point.y),
-          mode: 'markers'
+          mode: 'markers',
+          marker: {
+            size: MARKER_SIZE
+          }
         }
 
         traceData.push(vertexTrace);
@@ -534,15 +568,16 @@
       return Math.floor(Math.random()*nOptions);
     }
 
-    // the point should be going towards one of the vertices, half way.
+    // the point should be going towards one of the vertices, half way by default.
     function getNewPoint(lastPoint, polygonVertices){
       if (!lastPoint|| !polygonVertices){
         return;
       }
 
       const rule = currentRule;
+      const distanceFactor = currentDistanceFactor;
 
-      // rule 1 is the normal half distance towards a point
+      // rule 1 is the normal half distance (or other specified distance factor) towards a point
       // rule 2: rule 1 but is not being able to go towards the same vertex twice
       // rule 3: rule 1 but currently chosen vertex cannot be 2 places away from the previously chosen vertex
       // rule 4: rule 1 but if the same vertex is chosen twice in a row, then the next cannot be a direct neighbour of it
@@ -608,13 +643,13 @@
       // now get the distance between this last point and the one to go towards to (A, B, or C)
       //const halfDistance = Math.hypot(lastPoint, pointToGoTowards)/2;
 
-      // half vector from last point to the goal point
-      const halfVecLastToGoal = [(pointToGoTowards.x-lastPoint.x)/2, (pointToGoTowards.y-lastPoint.y)/2];
+      // factor distance from last point to the goal point
+      const factorVecToGoal = [(pointToGoTowards.x-lastPoint.x)*distanceFactor, (pointToGoTowards.y-lastPoint.y)*distanceFactor];
 
-      // get new point in direction to the goal (half distance to be precise)
+      // get new point in direction to the goal (factor distance to be precise)
       return {
-        x: lastPoint.x+halfVecLastToGoal[0], 
-        y: lastPoint.y+halfVecLastToGoal[1],
+        x: lastPoint.x+factorVecToGoal[0], 
+        y: lastPoint.y+factorVecToGoal[1],
         index: newRandomDirection
       };
     }
