@@ -51,14 +51,20 @@
     .item2 { grid-area: plot; }
     .item3 { grid-area: footer; }
     .item4 { grid-area: screenshots; }
+    .item5 { grid-area: screenshotsTwo; }
+    .item6 { grid-area: screenshotsThree; }
+    .item7 { grid-area: screenshotsFour; }
 
     .grid-container {
       display: grid;
       grid-template-areas:
-        'header header header header'
-        'plot plot plot plot'
-        'footer footer footer footer'
-        'screenshots screenshots screenshots screenshots';
+        'header header header header header header header'
+        'plot plot plot plot plot plot plot'
+        'footer footer footer footer footer footer footer'
+        'screenshots screenshots screenshots screenshots screenshots screenshots screenshots'
+        'screenshotsTwo screenshotsTwo screenshotsTwo screenshotsTwo screenshotsTwo screenshotsTwo screenshotsTwo'
+        'screenshotsThree screenshotsThree screenshotsThree screenshotsThree screenshotsThree screenshotsThree screenshotsThree'
+        'screenshotsFour screenshotsFour screenshotsFour screenshotsFour screenshotsFour screenshotsFour screenshotsFour';
       grid-gap: 10px;
       padding: 10px;
       max-height: 1424px;
@@ -68,6 +74,22 @@
       text-align: center;
       padding: 0 0;
       font-size: 11pt;
+    }
+
+    .screenshots {
+      border: 1px solid #333333;
+    }
+
+    .item6 > div {
+      margin: 0px 7px;
+    }
+
+    .item7 > div {
+      margin-bottom: 20px;
+    }
+
+    .inline-images {
+      display: inline-block;
     }
 
     .github-corner {
@@ -148,6 +170,93 @@
     <div class="item2" id="mandelbrot-plot"></div>
     <div class="item3">
       <p>Used plot library: <a target="blank" href="https://plot.ly/javascript/">Plotly</a></p>
+    </div>
+    <div class="item4">
+      <div class="inline-images">
+        <p>v = 3, r = 1, f = 0.5</p>
+        <img src="pictures/screen-3vert-1rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 3 vertices, rule 1, and 0.5 distance factor">
+      </div>
+      <div class="inline-images">
+        <p>v = 3, r = 2, f = 0.5</p>
+        <img src="pictures/screen-3vert-2rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 3 vertices, rule 2, and 0.5 distance factor">
+      </div>
+      <div class="inline-images">
+        <p>v = 4, r = 2, f = 0.5</p>
+        <img src="pictures/screen-4vert-2rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 4 vertices, rule 2, and 0.5 distance factor">
+      </div>
+      <div class="inline-images">
+        <p>v = 4, r = 3, f = 0.5</p>
+        <img src="pictures/screen-4vert-3rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 4 vertices, rule 3, and 0.5 distance factor">
+      </div>
+      <div class="inline-images">
+        <p>v = 4, r = 3, f = 0.66</p>
+        <img src="pictures/screen-4vert-3rule-2:3factor.png" class="screenshots" height="250" alt="example fractal with 4 vertices, rule 3, and 0.66 distance factor">
+      </div>
+  </div>
+  <div class="item5">
+    <div class="inline-images">
+      <p>v = 4, r = 4, f = 0.5</p>
+      <img src="pictures/screen-4vert-4rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 4 vertices, rule 4, and 0.5 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 5, r = 1, f = 0.5</p>
+      <img src="pictures/screen-5vert-1rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 5 vertices, rule 1, and 0.5 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 5, r = 2, f = 0.5</p>
+      <img src="pictures/screen-5vert-2rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 5 vertices, rule 2, and 0.5 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 5, r = 3, f = 0.5</p>
+      <img src="pictures/screen-5vert-3rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 5 vertices, rule 3, and 0.5 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 5, r = 3, f = 0.66</p>
+      <img src="pictures/screen-5vert-3rule-2:3factor.png" class="screenshots" height="250" alt="example fractal with 5 vertices, rule 3, and 0.66 distance factor">
+    </div>
+  </div>
+  <div class="item6">
+    <div class="inline-images">
+      <p>v = 5, r = 4, f = 0.5</p>
+      <img src="pictures/screen-5vert-4rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 5 vertices, rule 4, and 0.5 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 5, r = 4, f = 0.66</p>
+      <img src="pictures/screen-5vert-4rule-2:3factor.png" class="screenshots" height="250" alt="example fractal with 5 vertices, rule 4, and 0.66 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 6, r = 4, f = 0.5</p>
+      <img src="pictures/screen-6vert-4rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 6 vertices, rule 4, and 0.5 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 6, r = 4, f = 0.66</p>
+      <img src="pictures/screen-6vert-4rule-2:3factor.png" class="screenshots" height="250" alt="example fractal with 6 vertices, rule 4, and 0.66 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 7, r = 1, f = 0.66</p>
+      <img src="pictures/screen-7vert-1rule-2:3factor.png" class="screenshots" height="250" alt="example fractal with 7 vertices, rule 1, and 0.66 distance factor">
+    </div>
+  </div>
+  <div class="item7">
+    <div class="inline-images">
+      <p>v = 7, r = 2, f = 0.66</p>
+      <img src="pictures/screen-7vert-2rule-2:3factor.png" class="screenshots" height="250" alt="example fractal with 7 vertices, rule 2, and 0.66 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 7, r = 2, f = 0.66</p>
+      <img src="pictures/screen-7vert-3rule-2:3factor.png" class="screenshots" height="250" alt="example fractal with 7 vertices, rule 3, and 0.66 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 8, r = 1, f = 0.66</p>
+      <img src="pictures/screen-8vert-1rule-2:3factor.png" class="screenshots" height="250" alt="example fractal with 8 vertices, rule 1, and 0.66 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 8, r = 1, f = 0.5</p>
+      <img src="pictures/screen-8vert-1rule-0.5factor.png" class="screenshots" height="250" alt="example fractal with 8 vertices, rule 1, and 0.5 distance factor">
+    </div>
+    <div class="inline-images">
+      <p>v = 8, r = 3, f = 0.66</p>
+      <img src="pictures/screen-8vert-3rule-2:3factor.png" class="screenshots" height="250" alt="example fractal with 8 vertices, rule 3, and 0.66 distance factor">
     </div>
   </div>
 
