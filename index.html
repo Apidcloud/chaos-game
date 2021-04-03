@@ -499,7 +499,7 @@
 
     function getNIterations(n, polygonVertices, lastPoint){
       if (!n || n <= 0 || !polygonVertices || !lastPoint){
-        return;
+        return [];
       }
 
       let pointsForNextDraw = [];
@@ -512,7 +512,7 @@
         beforeLastVertexIndex = lastVertexIndex;
         lastVertexIndex = tempLastPoint.index;
         if (tempLastPoint == -1){
-          alert("Minimum 4 vertices needed for rule 3.");
+          alert("Minimum 4 vertices needed for rule " + currentRule.toString() + " to work properly.");
           break;
         }
         pointsForNextDraw.push(tempLastPoint);
@@ -549,6 +549,8 @@
 
       let randomDirectionOptions = range(0, polygonVertices.length-1);
 
+      // get a first random direction
+      // do it again if a certain rule does not allow that specific direction
       let newRandomDirection = randomDirectionOptions[getNewRandomDirection(randomDirectionOptions.length)];
 
       if (rule === 2){
@@ -577,7 +579,14 @@
             newRandomDirection = randomDirectionOptions[getNewRandomDirection(randomDirectionOptions.length)];
           }
       } else if (rule === 4){
+        // no need to go further if there aren't enough vertices (does not really work for triangle)
+        if (polygonVertices.length <= 3){
+            return -1;
+          }
+
         if (lastVertexIndex !== undefined && lastVertexIndex === beforeLastVertexIndex){
+          // TODO
+          // debug the removal of neighbours... a certain left region is being avoided for some reason
           // get immediate neighbours
           const neighbours = getNeighbours(lastVertexIndex, randomDirectionOptions, 1);
           const forwardIndex = neighbours.forwardIndex;
@@ -622,7 +631,7 @@
 
       if (backwardIndex != forwardIndex){
         // also remove, but we need to find its new index, now that the array is mutated
-        for(let i = 0; i < tempArr; i++){
+        for(let i = 0; i < tempArr.length; i++){
           if (tempArr[i] === backwardValue){
             backwardIndex = i;
             break;
@@ -643,7 +652,10 @@
 
       let backwardIndex = (origin - distance);
       if (backwardIndex < 0){
-        backwardIndex = whereArr.length - backwardIndex;
+        // since backwardIndex is negative, we need to use the plus sign here (or use abs and minus sign)
+        // otherwise it would actually sum the backward index 
+        // (e.g., instead of 0 becoming the length-1, it would become the length or more--not in a valid range)
+        backwardIndex = whereArr.length + backwardIndex;
       }
 
       return {
