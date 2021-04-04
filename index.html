@@ -41,13 +41,9 @@
       width: 35px;
     }
 
-    .rules {
+    #rulesContainer {
+      display: inline-block; 
       text-align: left;
-      padding-left: 23.5%;
-    }
-
-    #currentNPoints {
-      padding-top: 10px;
     }
 
     .centerVertically {
@@ -174,18 +170,20 @@
         </div>
         <button class="centerVertically" onclick="randomizeNTimes();">Iterate</button>
       </div>
-      <p class="rules">
-        Rule 1: picking one of the vertices and going into its direction (from previous iteration result) a factor of its distance (default 0.5)
-      </p>
-      <p class="rules">
-        Rule 2: rule 1, but unable to go towards the same vertex twice in a row
-      </p>
-      <p class="rules">
-        Rule 3: rule 1, but current chosen vertex cannot be 2 places away from the previous chosen vertex
-      </p>
-      <p class="rules">
-        Rule 4: rule 1, but if the same vertex has been chosen twice in a row, then the next cannot be its direct neighbour
-      </p>
+      <div id="rulesContainer">
+        <p class="rules">
+          Rule 1: picking one of the vertices and going into its direction (from previous iteration result) a factor of its distance (default 0.5)
+        </p>
+        <p class="rules">
+          Rule 2: rule 1, but unable to go towards the same vertex twice in a row
+        </p>
+        <p class="rules">
+          Rule 3: rule 1, but current chosen vertex cannot be 2 places away from the previous chosen vertex
+        </p>
+        <p class="rules">
+          Rule 4: rule 1, but if the same vertex has been chosen twice in a row, then the next cannot be its direct neighbour
+        </p>
+      </div>
       <p id="currentNPoints"></p>
     </div>
     <div class="item2" id="mandelbrot-plot"></div>
